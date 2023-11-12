@@ -49,7 +49,7 @@ namespace Tree
             {
                 cn.OpenConnection();
 
-                var sql = "select * from course where faculty_id = @id";
+                var sql = "select * from course where faculty_id = @id ORDER BY course_id";
 
                 var cmd = cn.CreateCommand(sql);
                 cmd.Parameters.AddWithValue("@id", id);
@@ -60,7 +60,8 @@ namespace Tree
                 {
                     var n = new TreeNode(dr["course_name"].ToString());
                     n.ContextMenuStrip = contextMenuCourse;
-                    n.Tag = (int)dr["faculty_id"];
+                    //n.Tag = (int)dr["faculty_id"];
+                    n.Tag = (int)dr["course_id"];
                     Parent.Nodes.Add(n);
                     LoadGroup((int)dr["course_id"], n);
                 }
@@ -76,7 +77,7 @@ namespace Tree
             {
                 cn.OpenConnection();
 
-                var sql = "select * from university_group where course_id = @id";
+                var sql = "select * from university_group where course_id = @id ORDER BY group_id";
 
                 var cmd = cn.CreateCommand(sql);
                 cmd.Parameters.AddWithValue("@id", id);
@@ -87,7 +88,8 @@ namespace Tree
                 {
                     var n = new TreeNode(dr["group_name"].ToString());
                     n.ContextMenuStrip = contextMenuCourse;
-                    n.Tag = (int)dr["course_id"];
+                    //n.Tag = (int)dr["course_id"];
+                    n.Tag = (int)dr["group_id"];
                     Parent.Nodes.Add(n);
                 }
 
@@ -103,12 +105,11 @@ namespace Tree
 
             int id = (int)treeView1.SelectedNode.Tag;
 
-
             using (var cn = NpgsqlDataSource.Create(constring))
             {
                 cn.OpenConnection();
 
-                var sql = "delete from course where faculty_id = @id";
+                var sql = "delete from course where course_id = @id";
 
                 var cmd = cn.CreateCommand(sql);
                 cmd.Parameters.AddWithValue("@id", id);
@@ -128,12 +129,11 @@ namespace Tree
 
             int id = (int)treeView1.SelectedNode.Tag;
 
-
             using (var cn = NpgsqlDataSource.Create(constring))
             {
                 cn.OpenConnection();
 
-                var sql = "delete from university_group where course_id = @id";
+                var sql = "delete from university_group where group_id = @id";
                 //var sql = "delete from university_group where group_id = @id";
 
                 var cmd = cn.CreateCommand(sql);
