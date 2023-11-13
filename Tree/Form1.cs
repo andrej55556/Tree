@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Npgsql;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Tree
 {
@@ -147,9 +148,40 @@ namespace Tree
             }
         }
 
+        void AddGroup()
+        {
+            if (treeView1.SelectedNode == null)
+                return;
+
+            int id = (int)treeView1.GetNodeCount(true) +1;
+            //int id = (int)treeView1.Nodes.Count + 1;
+            int course_id = (int)treeView1.SelectedNode.Parent.Tag;
+            string name = "PMI";
+
+            using (var cn = NpgsqlDataSource.Create(constring))
+            {
+                cn.OpenConnection();
+
+                var sql = "INSERT INTO university_group VALUES (@id,@name,@course_id)";
+
+                var cmd = cn.CreateCommand(sql);
+                cmd.Parameters.AddWithValue("@id", id);
+                cmd.Parameters.AddWithValue("@name", name);
+                cmd.Parameters.AddWithValue("@course_id", course_id);
+
+                var dr = cmd.ExecuteNonQuery();
+
+                var n = new TreeNode(name);
+                //treeView1.Nodes.Add(n);
+                treeView1.SelectedNode.Parent.Nodes.Add(n);
+
+                cn.Dispose();
+            }
+        }
+
         private void добавитьToolStripMenuItem_Click(object sender, EventArgs e)
         {
-
+            AddGroup();
         }
 
         private void изменитьToolStripMenuItem_Click(object sender, EventArgs e)
