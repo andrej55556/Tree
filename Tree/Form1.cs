@@ -16,6 +16,9 @@ namespace Tree
     public partial class Form1 : Form
     {
         string constring = "Host = localhost;Username = postgres;Password = postgres;Database = 2";
+        List<int> faculty_ids = new List<int>();
+        List<int> course_ids = new List<int>();
+        List<int> group_ids = new List<int>();
 
         public Form1()
         {
@@ -36,7 +39,10 @@ namespace Tree
                 while(dr.Read())
                 {
                     var n = new TreeNode(dr["faculty_name"].ToString());
+                    n.ContextMenuStrip = contextMenuCourse;
+                    n.Tag = (int)dr["faculty_id"];
                     treeView1.Nodes.Add(n);
+                    faculty_ids.Add((int)dr["faculty_id"]);
                     LoadCourse((int)dr["faculty_id"],n);
                 }
                 cn.Dispose();
@@ -61,9 +67,9 @@ namespace Tree
                 {
                     var n = new TreeNode(dr["course_name"].ToString());
                     n.ContextMenuStrip = contextMenuCourse;
-                    //n.Tag = (int)dr["faculty_id"];
                     n.Tag = (int)dr["course_id"];
                     Parent.Nodes.Add(n);
+                    course_ids.Add((int)dr["course_id"]);
                     LoadGroup((int)dr["course_id"], n);
                 }
 
@@ -89,9 +95,9 @@ namespace Tree
                 {
                     var n = new TreeNode(dr["group_name"].ToString());
                     n.ContextMenuStrip = contextMenuCourse;
-                    //n.Tag = (int)dr["course_id"];
                     n.Tag = (int)dr["group_id"];
                     Parent.Nodes.Add(n);
+                    group_ids.Add((int)dr["group_id"]);
                 }
 
                 cn.Dispose();
@@ -119,6 +125,8 @@ namespace Tree
 
                 treeView1.SelectedNode.Remove();
 
+                course_ids.Remove(id);
+
                 cn.Dispose();
             }
         }
@@ -144,44 +152,178 @@ namespace Tree
 
                 treeView1.SelectedNode.Remove();
 
+                group_ids.Remove(id);
+
                 cn.Dispose();
             }
         }
 
-        void AddGroup()
+        void DeleteFaculty()
         {
             if (treeView1.SelectedNode == null)
                 return;
 
-            int id = (int)treeView1.GetNodeCount(true) +1;
-            //int id = (int)treeView1.Nodes.Count + 1;
-            int course_id = (int)treeView1.SelectedNode.Parent.Tag;
-            string name = "PMI";
+            int id = (int)treeView1.SelectedNode.Tag;
 
             using (var cn = NpgsqlDataSource.Create(constring))
             {
                 cn.OpenConnection();
 
-                var sql = "INSERT INTO university_group VALUES (@id,@name,@course_id)";
+                var sql = "delete from faculty where faculty_id = @id";
+                //var sql = "delete from university_group where group_id = @id";
 
                 var cmd = cn.CreateCommand(sql);
                 cmd.Parameters.AddWithValue("@id", id);
-                cmd.Parameters.AddWithValue("@name", name);
-                cmd.Parameters.AddWithValue("@course_id", course_id);
 
                 var dr = cmd.ExecuteNonQuery();
 
-                var n = new TreeNode(name);
-                //treeView1.Nodes.Add(n);
-                treeView1.SelectedNode.Parent.Nodes.Add(n);
+                treeView1.SelectedNode.Remove();
+
+                group_ids.Remove(id);
 
                 cn.Dispose();
             }
         }
 
+        void AddGroup(bool empty)
+        {
+            if (treeView1.SelectedNode == null)
+                return;
+
+            var frm = new AddForm();
+            if (frm.ShowDialog() == DialogResult.OK)
+            {
+                int id = group_ids.Max() + 1;
+
+                int course_id = 0;
+                if (empty)
+                    course_id = (int)treeView1.SelectedNode.Tag;
+                else course_id = (int)treeView1.SelectedNode.Parent.Tag;
+
+                string name = Help.Add;
+
+                using (var cn = NpgsqlDataSource.Create(constring))
+                {
+                    cn.OpenConnection();
+
+                    var sql = "INSERT INTO university_group VALUES (@id,@name,@course_id)";
+
+                    var cmd = cn.CreateCommand(sql);
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.Parameters.AddWithValue("@name", name);
+                    cmd.Parameters.AddWithValue("@course_id", course_id);
+
+                    var dr = cmd.ExecuteNonQuery();
+
+                    var n = new TreeNode(name);
+                    n.Tag = id;
+                    n.ContextMenuStrip = contextMenuCourse;
+
+                    if (empty)
+                        treeView1.SelectedNode.Nodes.Add(n);
+                    else treeView1.SelectedNode.Parent.Nodes.Add(n);
+
+                    group_ids.Add(id);
+
+                    cn.Dispose();
+                }
+            }
+        }
+
+        void AddCourse(bool empty)
+        {
+            if (treeView1.SelectedNode == null)
+                return;
+
+            var frm = new AddForm();
+            if (frm.ShowDialog() == DialogResult.OK)
+            {
+                int id = course_ids.Max() + 1;
+
+                int faculty_id = 0;
+                if (empty)
+                    faculty_id = (int)treeView1.SelectedNode.Tag;
+                else faculty_id = (int)treeView1.SelectedNode.Parent.Tag;
+
+                string name = Help.Add;
+
+                using (var cn = NpgsqlDataSource.Create(constring))
+                {
+                    cn.OpenConnection();
+
+                    var sql = "INSERT INTO course VALUES (@id,@name,@faculty_id)";
+
+                    var cmd = cn.CreateCommand(sql);
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.Parameters.AddWithValue("@name", name);
+                    cmd.Parameters.AddWithValue("@faculty_id", faculty_id);
+
+                    var dr = cmd.ExecuteNonQuery();
+
+                    var n = new TreeNode(name);
+                    n.Tag = id;
+                    n.ContextMenuStrip = contextMenuCourse;
+
+                    if (empty)
+                        treeView1.SelectedNode.Nodes.Add(n);
+                    else treeView1.SelectedNode.Parent.Nodes.Add(n);
+
+                    course_ids.Add(id);
+
+                    cn.Dispose();
+                }
+            }
+        }
+
+        void AddFaculty()
+        {
+            if (treeView1.SelectedNode == null)
+                return;
+
+            var frm = new AddForm();
+            if (frm.ShowDialog() == DialogResult.OK)
+            {
+                int id = faculty_ids.Max() + 1;
+
+                string name = Help.Add;
+
+                using (var cn = NpgsqlDataSource.Create(constring))
+                {
+                    cn.OpenConnection();
+
+                    var sql = "INSERT INTO faculty VALUES (@name,@id)";
+
+                    var cmd = cn.CreateCommand(sql);
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.Parameters.AddWithValue("@name", name);
+
+                    var dr = cmd.ExecuteNonQuery();
+
+                    var n = new TreeNode(name);
+                    n.Tag = id;
+                    n.ContextMenuStrip = contextMenuCourse;
+
+                    treeView1.Nodes.Add(n);
+
+                    faculty_ids.Add(id);
+
+                    cn.Dispose();
+                }
+            }
+        }
+
         private void добавитьToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            AddGroup();
+            if (treeView1.SelectedNode.Level == 0 && treeView1.SelectedNode.FirstNode != null)
+                AddFaculty();
+            if (treeView1.SelectedNode.Level == 0 && treeView1.SelectedNode.FirstNode == null)
+                AddCourse(true);
+            if (treeView1.SelectedNode.Level == 1 && treeView1.SelectedNode.FirstNode != null)
+                AddCourse(false);
+            if(treeView1.SelectedNode.Level == 1 && treeView1.SelectedNode.FirstNode == null)
+                AddGroup(true);
+            if (treeView1.SelectedNode.Level == 2)
+                AddGroup(false);
         }
 
         private void изменитьToolStripMenuItem_Click(object sender, EventArgs e)
@@ -191,8 +333,8 @@ namespace Tree
 
         private void удалитьToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            //if(treeView1.SelectedNode.Level == 0)
-            //    //DeleteGroup();
+            if (treeView1.SelectedNode.Level == 0)
+                DeleteFaculty();
             if (treeView1.SelectedNode.Level == 1)
                 DeleteCourse();
             if (treeView1.SelectedNode.Level == 2)
