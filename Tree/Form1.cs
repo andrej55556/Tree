@@ -32,25 +32,25 @@ namespace Tree
             using (var cn = NpgsqlDataSource.Create(constring))
             {
                 cn.OpenConnection();
-                var sql = "select * from faculty";
+                var sql = "select * from faculty ORDER BY faculty_id";
                 var cmd = cn.CreateCommand(sql);
                 var dr = cmd.ExecuteReader();
 
-                while(dr.Read())
+                while (dr.Read())
                 {
                     var n = new TreeNode(dr["faculty_name"].ToString());
                     n.ContextMenuStrip = contextMenuCourse;
                     n.Tag = (int)dr["faculty_id"];
                     treeView1.Nodes.Add(n);
                     faculty_ids.Add((int)dr["faculty_id"]);
-                    LoadCourse((int)dr["faculty_id"],n);
+                    LoadCourse((int)dr["faculty_id"], n);
                 }
                 cn.Dispose();
                 dr.Dispose();
             }
         }
 
-        void LoadCourse(int id,TreeNode Parent)
+        void LoadCourse(int id, TreeNode Parent)
         {
             using (var cn = NpgsqlDataSource.Create(constring))
             {
@@ -312,6 +312,59 @@ namespace Tree
             }
         }
 
+        void Update(int state)
+        {
+            if (treeView1.SelectedNode == null)
+                return;
+
+            var frm = new AddForm();
+            if (frm.ShowDialog() == DialogResult.OK)
+            {
+                int id = (int)treeView1.SelectedNode.Tag;
+
+                string name = Help.Add;
+
+                using (var cn = NpgsqlDataSource.Create(constring))
+                {
+                    cn.OpenConnection();
+
+                    var sql = "";
+                    switch (state)
+                    {
+                        case 0:
+                            {
+                                sql = "UPDATE faculty SET faculty_name = @name WHERE faculty_id = @id";
+                                break;
+                            }
+                        case 1:
+                            {
+                                sql = "UPDATE course SET course_name = @name WHERE course_id = @id";
+                                break;
+                            }
+                        case 2:
+                            {
+                                sql = "UPDATE university_group SET group_name = @name WHERE group_id = @id";
+                                break;
+                            }
+                    }
+
+                    var cmd = cn.CreateCommand(sql);
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.Parameters.AddWithValue("@name", name);
+
+                    var dr = cmd.ExecuteNonQuery();
+
+                    var n = new TreeNode(name);
+                    n.Tag = id;
+                    n.ContextMenuStrip = contextMenuCourse;
+
+                    treeView1.SelectedNode.Text = name;
+
+                    cn.Dispose();
+                }
+            }
+        }
+
         private void добавитьToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (treeView1.SelectedNode.Level == 0 && treeView1.SelectedNode.FirstNode != null)
@@ -320,7 +373,7 @@ namespace Tree
                 AddCourse(true);
             if (treeView1.SelectedNode.Level == 1 && treeView1.SelectedNode.FirstNode != null)
                 AddCourse(false);
-            if(treeView1.SelectedNode.Level == 1 && treeView1.SelectedNode.FirstNode == null)
+            if (treeView1.SelectedNode.Level == 1 && treeView1.SelectedNode.FirstNode == null)
                 AddGroup(true);
             if (treeView1.SelectedNode.Level == 2)
                 AddGroup(false);
@@ -328,7 +381,12 @@ namespace Tree
 
         private void изменитьToolStripMenuItem_Click(object sender, EventArgs e)
         {
-
+            if (treeView1.SelectedNode.Level == 0)
+                Update(0);
+            if (treeView1.SelectedNode.Level == 1)
+                Update(1);
+            if (treeView1.SelectedNode.Level == 2)
+                Update(2);
         }
 
         private void удалитьToolStripMenuItem_Click(object sender, EventArgs e)
